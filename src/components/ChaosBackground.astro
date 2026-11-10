@@ -21,7 +21,7 @@
   <details class="legend__details" id="bg-details">
     <summary>
       <span class="legend__k">Background</span>
-      <span class="legend__name" id="bg-name">Hastings–Powell</span>
+      <span class="legend__name" id="bg-name">Hastings–Powell attractor</span>
     </summary>
     <div class="legend__panel">
       <div class="legend__sys" data-sys="0">
@@ -457,7 +457,7 @@
       if (sys !== shownSys) {
         shownSys = sys;
         infos.forEach(function (el, k) { el.hidden = k !== sys; });
-        ui.name.textContent = sys === 0 ? 'Hastings–Powell' : 'Ikeda';
+        ui.name.textContent = sys === 0 ? 'Hastings–Powell attractor' : 'Ikeda attractor';
         ui.paramK.innerHTML = sys === 0 ? '<i>z</i>' : '<i>φ</i>';
       }
       ui.param.textContent = sys === 0 ? st.z.toFixed(2) : st.phi.toFixed(2);
