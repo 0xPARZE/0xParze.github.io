@@ -1,0 +1,94 @@
+---
+import '../styles/global.css';
+import { site } from '../data/profile';
+
+interface Props {
+  title?: string;
+  description?: string;
+}
+
+const { title = site.title, description = site.description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, Astro.site);
+const ogImage = new URL('og.jpg', Astro.site);
+
+const personLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Person',
+  name: site.name,
+  url: Astro.site?.toString(),
+  email: `mailto:${site.email}`,
+  jobTitle: 'Computer Science & Physics student',
+  alumniOf: { '@type': 'CollegeOrUniversity', name: 'University of Manitoba' },
+  address: { '@type': 'PostalAddress', addressLocality: 'Winnipeg', addressRegion: 'MB', addressCountry: 'CA' },
+  knowsAbout: ['Nonlinear dynamics', 'Chaos theory', 'Computational physics', 'High-performance computing', 'CUDA', 'Scientific machine learning'],
+  sameAs: [site.github, site.linkedin],
+};
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    <meta name="author" content={site.name} />
+
+    <meta property="og:type" content="profile" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Rahul Nivash, over a particle flow through the Ikeda and Hastings–Powell dynamics" />
+    <meta property="profile:first_name" content="Rahul" />
+    <meta property="profile:last_name" content="Nivash" />
+    <meta name="twitter:card" content="summary_large_image" />
+
+    <link rel="icon" href="/favicon.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta name="theme-color" content="#f3f6f9" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#070b12" media="(prefers-color-scheme: dark)" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Archivo:ital,wdth,wght@0,100..125,300..800;1,100..125,300..800&family=Martian+Mono:wdth,wght@87.5..100,300..600&family=STIX+Two+Text:ital,wght@0,400;1,400;1,500&display=swap"
+    />
+
+    <script type="application/ld+json" set:html={JSON.stringify(personLd)} />
+
+    <!-- Apply a saved theme before first paint so the page never flashes. -->
+    <script is:inline>
+      (function () {
+        try {
+          var t = localStorage.getItem('theme');
+          if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#main">Skip to content</a>
+    <slot />
+    <style is:global>
+      .skip {
+        position: absolute;
+        left: 1rem;
+        top: -4rem;
+        z-index: 100;
+        padding: 0.6rem 1rem;
+        background: var(--btn-bg);
+        color: var(--btn-fg);
+        border-radius: var(--radius);
+        text-decoration: none;
+      }
+      .skip:focus {
+        top: calc(env(safe-area-inset-top, 0px) + 1rem);
+      }
+    </style>
+  </body>
+</html>

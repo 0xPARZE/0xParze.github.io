@@ -1,0 +1,1149 @@
+---
+import Base from '../layouts/Base.astro';
+import Nav from '../components/Nav.astro';
+import ChaosBackground from '../components/ChaosBackground.astro';
+import SignalRule from '../components/SignalRule.astro';
+import Icon from '../components/Icon.astro';
+import {
+  site,
+  status,
+  hero,
+  about,
+  fit,
+  research,
+  publication,
+  talks,
+  skills,
+  education,
+  service,
+  contact,
+} from '../data/profile';
+
+const year = new Date().getFullYear();
+---
+
+<Base>
+  <ChaosBackground />
+  <Nav />
+  <main id="main">
+    <!-- ============ HERO ============ -->
+    <section class="hero" id="top">
+      <div class="wrap hero__grid">
+        <div class="hero__text">
+          <p class="kicker hero__eyebrow">{hero.eyebrow}</p>
+          <h1 class="hero__name">{site.name}</h1>
+          <p class="hero__lede">{hero.lede}</p>
+          <p class="hero__sub">{hero.sub}</p>
+          <p class="status">
+            <span class="status__dot" aria-hidden="true"></span>
+            {status.text}
+          </p>
+          <div class="hero__actions">
+            <a class="btn btn--solid" href={site.cv} target="_blank" rel="noopener">
+              <Icon name="file" /> View CV
+            </a>
+            <a class="btn" href="#contact">Get in touch</a>
+            <div class="hero__icons">
+              <a class="icon-btn" href={site.github} target="_blank" rel="noopener" aria-label="GitHub profile">
+                <Icon name="github" />
+              </a>
+              <a class="icon-btn" href={site.linkedin} target="_blank" rel="noopener" aria-label="LinkedIn profile">
+                <Icon name="linkedin" />
+              </a>
+              <a class="icon-btn" href={`mailto:${site.email}`} aria-label={`Email ${site.email}`}>
+                <Icon name="mail" />
+              </a>
+            </div>
+          </div>
+          <p class="hero__cue">
+            <span class="hero__cue-dot" aria-hidden="true"></span>
+            <span>
+              The background here is computed live in your browser with WebGL2 and GLSL shaders on your GPU, no libraries:{' '}
+              <span data-bg-count>16,384</span> particles streaming through the Hastings–Powell food chain and the Ikeda map.
+            </span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ ABOUT ============ -->
+    <section class="section" id="about" aria-labelledby="about-h">
+      <div class="wrap section-grid">
+        <SignalRule name="hpPrey" />
+        <header class="section-head">
+          <p class="kicker">About</p>
+          <h2 id="about-h">{about.heading}</h2>
+        </header>
+        <div class="about">
+          <div class="about__body">
+            <div class="prose">
+              {about.paragraphs.map((p) => <p>{p}</p>)}
+            </div>
+            <dl class="facts">
+              {about.facts.map((f) => (
+                <div class="facts__row">
+                  <dt>{f.label}</dt>
+                  <dd>{f.value}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <div class="fit">
+            <h3 class="subhead">Where my work applies</h3>
+            <ul class="fit__grid">
+              {fit.map((f) => (
+                <li class="fit__item">
+                  <h4>{f.area}</h4>
+                  <p>{f.body}</p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ RESEARCH ============ -->
+    <section class="section" id="research" aria-labelledby="research-h">
+      <div class="wrap section-grid">
+        <SignalRule name="ikedaModulus" />
+        <header class="section-head">
+          <p class="kicker">Research</p>
+          <h2 id="research-h">Mapping where systems turn chaotic.</h2>
+        </header>
+        <div class="projects">
+          {research.map((p) => (
+            <article class="proj" id={`proj-${p.id}`}>
+              <p class="proj__meta mono">
+                <span>{p.dates}</span>
+                <span>{p.role}</span>
+              </p>
+              <h3 class="proj__title">{p.title}</h3>
+              <p class="proj__org">
+                {p.org}
+                {p.supervisor && <> · Supervised by {p.supervisor}</>}
+              </p>
+              <p class="proj__summary">{p.summary}</p>
+              {p.stats && (
+                <dl class="stats">
+                  {p.stats.map((s) => (
+                    <div class="stats__item">
+                      <dt>{s.label}</dt>
+                      <dd>{s.value}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+              <ul class="proj__bullets">
+                {p.bullets.map((b) => <li>{b}</li>)}
+              </ul>
+              <ul class="chips" aria-label="Methods and tools">
+                {p.tags.map((t) => <li class="chip">{t}</li>)}
+              </ul>
+              {(p.links || p.outputs) && (
+                <div class="proj__foot">
+                  {p.outputs && (
+                    <p class="proj__outputs">
+                      <span class="mono">Outputs</span>
+                      {p.outputs.join(' · ')}
+                    </p>
+                  )}
+                  {p.links &&
+                    p.links.map((l) => (
+                      <a class="proj__link" href={l.href} target="_blank" rel="noopener">
+                        <Icon name="github" />
+                        {l.label}
+                        <Icon name="arrow" />
+                      </a>
+                    ))}
+                </div>
+              )}
+            </article>
+          ))}
+
+          <div class="pub">
+            <p class="kicker">Manuscript</p>
+            <p class="pub__cite">
+              {publication.authors.map((a, i) => (
+                <>
+                  {a.me ? <strong>{a.name}</strong> : a.name}
+                  {i < publication.authors.length - 1 ? ', & ' : ' '}
+                </>
+              ))}
+              <cite>{publication.title}.</cite>
+            </p>
+            <p class="pub__status mono">{publication.status}</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ TALKS ============ -->
+    <section class="section" id="talks" aria-labelledby="talks-h">
+      <div class="wrap section-grid">
+        <SignalRule name="hpPredator" />
+        <header class="section-head">
+          <p class="kicker">Talks &amp; posters</p>
+          <h2 id="talks-h">Six presentations in 2026.</h2>
+        </header>
+        <ol class="talks">
+          {talks.map((t) => (
+            <li class="talk">
+              <p class="talk__date mono">{t.date}</p>
+              <div class="talk__body">
+                <p class="talk__venue">
+                  {t.venue}
+                  <span class="talk__place">{t.place}</span>
+                </p>
+                <p class="talk__title">{t.title}</p>
+                {t.coauthor && <p class="talk__authors">with C. Heggerud</p>}
+              </div>
+              <p class="talk__tags">
+                <span class:list={['tag', t.kind === 'Oral' && 'tag--oral']}>{t.kind}</span>
+                {t.note && <span class="tag tag--note">{t.note}</span>}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+
+    <!-- ============ TOOLKIT ============ -->
+    <section class="section" id="toolkit" aria-labelledby="toolkit-h">
+      <div class="wrap section-grid">
+        <SignalRule name="ikedaRe" />
+        <header class="section-head">
+          <p class="kicker">Toolkit</p>
+          <h2 id="toolkit-h">From derivation to GPU kernel.</h2>
+        </header>
+        <div class="skills">
+          {skills.map((g) => (
+            <div class="skills__group">
+              <h3 class="subhead">{g.group}</h3>
+              <ul class="chips">
+                {g.items.map((i) => <li class="chip">{i}</li>)}
+              </ul>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ EDUCATION ============ -->
+    <section class="section" id="education" aria-labelledby="education-h">
+      <div class="wrap section-grid">
+        <SignalRule name="hpTop" />
+        <header class="section-head">
+          <p class="kicker">Education</p>
+          <h2 id="education-h">{education.school}</h2>
+        </header>
+        <div class="edu">
+          <div class="edu__top">
+            <div>
+              <h3 class="edu__degree">{education.degree}</h3>
+              <p class="edu__meta">{education.place} · {education.dates}</p>
+            </div>
+            <ul class="edu__honours">
+              {education.honours.map((h) => <li>{h}</li>)}
+            </ul>
+          </div>
+          <div class="edu__courses">
+            {education.coursework.map((g) => (
+              <div>
+                <h4 class="subhead">{g.group}</h4>
+                <ul class="edu__list">
+                  {g.items.map((i) => <li>{i}</li>)}
+                </ul>
+              </div>
+            ))}
+            <div class="edu__now">
+              <h4 class="subhead">This term, Fall 2026</h4>
+              <ul class="edu__list">
+                {education.inProgress.map((i) => <li>{i}</li>)}
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ SERVICE ============ -->
+    <section class="section" id="service" aria-labelledby="service-h">
+      <div class="wrap section-grid">
+        <SignalRule name="ikedaIm" />
+        <header class="section-head">
+          <p class="kicker">Teaching &amp; service</p>
+          <h2 id="service-h">Outside the lab.</h2>
+        </header>
+        <ul class="service">
+          {service.map((s) => (
+            <li class="service__item">
+              <p class="mono service__dates">{s.dates}</p>
+              <h3>{s.role}</h3>
+              <p class="service__org">{s.org}</p>
+              <p class="service__body">{s.body}</p>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+
+    <!-- ============ CONTACT ============ -->
+    <section class="section contact" id="contact" aria-labelledby="contact-h">
+      <div class="wrap">
+        <div class="contact__panel">
+          <div class="contact__text">
+            <p class="kicker">Contact</p>
+            <h2 id="contact-h" class="contact__h">{contact.heading}</h2>
+            <p class="contact__body">{contact.body}</p>
+          </div>
+          <div class="contact__actions">
+            <div class="email">
+              <a class="email__addr" href={`mailto:${site.email}`}>{site.email}</a>
+              <button class="btn email__copy" type="button" id="copy-email" data-email={site.email}>
+                <span class="email__icon"><Icon name="copy" /></span>
+                <span id="copy-label">Copy</span>
+              </button>
+            </div>
+            <div class="contact__links">
+              <a class="btn" href={site.linkedin} target="_blank" rel="noopener"><Icon name="linkedin" /> LinkedIn</a>
+              <a class="btn" href={site.github} target="_blank" rel="noopener"><Icon name="github" /> GitHub</a>
+              <a class="btn btn--solid" href={site.cv} target="_blank" rel="noopener"><Icon name="file" /> CV (PDF)</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer__inner">
+      <p>© {year} {site.name}</p>
+      <p>Built with Astro, hosted on GitHub Pages. Updated {site.updated}.</p>
+    </div>
+  </footer>
+
+  <script is:inline>
+    (function () {
+      var btn = document.getElementById('copy-email');
+      var label = document.getElementById('copy-label');
+      if (!btn || !label) return;
+      btn.addEventListener('click', function () {
+        var email = btn.getAttribute('data-email');
+        function done(ok) {
+          label.textContent = ok ? 'Copied' : 'Select it';
+          btn.classList.toggle('is-copied', ok);
+          setTimeout(function () {
+            label.textContent = 'Copy';
+            btn.classList.remove('is-copied');
+          }, 1800);
+        }
+        function fallback() {
+          var a = document.querySelector('.email__addr');
+          var r = document.createRange();
+          r.selectNodeContents(a);
+          var s = window.getSelection();
+          s.removeAllRanges();
+          s.addRange(r);
+          done(false);
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(email).then(function () { done(true); }, fallback);
+        } else fallback();
+      });
+    })();
+  </script>
+</Base>
+
+<style>
+  /* ---------- Hero ---------- */
+  main,
+  .footer {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero {
+    display: grid;
+    align-items: center;
+    min-height: clamp(560px, calc(86svh - 64px), 820px);
+    padding-block: clamp(2.5rem, 1.5rem + 4vw, 5rem);
+  }
+
+  .hero__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .hero__text {
+    max-width: 640px;
+  }
+
+  .hero__text {
+    display: grid;
+    gap: 1.25rem;
+    justify-items: start;
+    min-width: 0;
+  }
+
+  .hero__text > * {
+    animation: rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  }
+  .hero__text > :nth-child(2) { animation-delay: 0.05s; }
+  .hero__text > :nth-child(3) { animation-delay: 0.1s; }
+  .hero__text > :nth-child(4) { animation-delay: 0.15s; }
+  .hero__text > :nth-child(5) { animation-delay: 0.2s; }
+  .hero__text > :nth-child(6) { animation-delay: 0.25s; }
+  .hero__text > :nth-child(7) { animation-delay: 0.4s; }
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+  }
+
+  .hero__name {
+    font-size: var(--step-5);
+    font-weight: 700;
+    font-stretch: 122%;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+    margin-top: 0.2rem;
+  }
+
+  .hero__lede {
+    font-family: var(--font-display);
+    font-size: var(--step-2);
+    font-weight: 500;
+    font-stretch: 108%;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    max-width: 24ch;
+  }
+
+  .hero__sub {
+    color: var(--muted);
+    max-width: 46ch;
+  }
+
+  .status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--surface);
+    font-size: 0.875rem;
+    line-height: 1.35;
+  }
+
+  .status__dot {
+    flex: none;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ok);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ok) 22%, transparent);
+  }
+
+  .hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 0.4rem;
+  }
+
+  .hero__icons {
+    display: flex;
+    gap: 0.1rem;
+  }
+
+  .hero__cue {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 1.5rem;
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.02em;
+    color: var(--faint);
+    max-width: 60ch;
+  }
+
+  :global(.bg-off) .hero__cue {
+    display: none;
+  }
+
+  .hero__cue-dot {
+    flex: none;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+
+  /* ---------- Shared bits ---------- */
+  .subhead {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  .prose {
+    display: grid;
+    gap: 1.1rem;
+    max-width: 62ch;
+  }
+
+  /* ---------- About ---------- */
+  .about {
+    display: grid;
+    gap: 3.5rem;
+    min-width: 0;
+  }
+
+  .about__body {
+    display: grid;
+    gap: 2.5rem;
+  }
+
+  @media (min-width: 1180px) {
+    .about__body {
+      grid-template-columns: minmax(0, 1fr) 290px;
+      gap: 3.5rem;
+    }
+  }
+
+  .facts {
+    margin: 0;
+    display: grid;
+    align-content: start;
+    border-top: 1px solid var(--line);
+  }
+
+  .facts__row {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 1rem;
+    padding-block: 0.7rem;
+    border-bottom: 1px solid var(--line);
+    font-size: 0.9375rem;
+    line-height: 1.45;
+  }
+
+  .facts dt {
+    color: var(--muted);
+    font-size: var(--step--1);
+    padding-top: 0.1rem;
+  }
+
+  .facts dd {
+    margin: 0;
+  }
+
+  .fit {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  .fit__grid {
+    list-style: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  @media (min-width: 680px) {
+    .fit__grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .fit__item {
+    display: grid;
+    align-content: start;
+    gap: 0.5rem;
+    padding: 1.4rem 1.5rem 1.5rem;
+    background: var(--surface);
+  }
+
+  .fit__item h4 {
+    font-size: 1.0625rem;
+    font-stretch: 110%;
+    font-weight: 600;
+  }
+
+  .fit__item p {
+    color: var(--muted);
+    font-size: 0.9375rem;
+    line-height: 1.55;
+  }
+
+  /* ---------- Research ---------- */
+  .projects {
+    display: grid;
+    gap: 0;
+    min-width: 0;
+  }
+
+  .proj {
+    display: grid;
+    gap: 0.9rem;
+    padding-block: 2.5rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .proj:first-child {
+    border-top: 0;
+    padding-top: 0.25rem;
+  }
+
+  .proj__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 1.25rem;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .proj__meta span:first-child {
+    color: var(--accent);
+  }
+
+  .proj__title {
+    font-size: var(--step-2);
+    font-stretch: 110%;
+    letter-spacing: -0.012em;
+  }
+
+  .proj__org {
+    color: var(--muted);
+    font-size: 0.9375rem;
+    margin-top: -0.4rem;
+  }
+
+  .proj__summary {
+    max-width: 64ch;
+    font-size: 1.0625rem;
+  }
+
+  .stats {
+    margin: 0.4rem 0;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border-block: 1px solid var(--line);
+  }
+
+  .stats__item {
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-end;
+    gap: 0.35rem;
+    padding: 1rem 1rem 1rem 0;
+  }
+
+  .stats__item + .stats__item {
+    padding-left: 1.1rem;
+    border-left: 1px solid var(--line);
+  }
+
+  .stats dd {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.3rem);
+    font-weight: 600;
+    font-stretch: 115%;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .stats dt {
+    color: var(--muted);
+    font-size: var(--step--1);
+    line-height: 1.35;
+  }
+
+  @media (max-width: 520px) {
+    .stats {
+      grid-template-columns: minmax(0, 1fr);
+    }
+    .stats__item {
+      flex-direction: row-reverse;
+      justify-content: flex-end;
+      align-items: baseline;
+      gap: 0.9rem;
+      padding: 0.75rem 0;
+    }
+    .stats__item + .stats__item {
+      padding-left: 0;
+      border-left: 0;
+      border-top: 1px solid var(--line);
+    }
+    .stats dd {
+      min-width: 4.2ch;
+    }
+  }
+
+  .proj__bullets {
+    display: grid;
+    gap: 0.55rem;
+    list-style: none;
+    max-width: 66ch;
+    font-size: 0.96875rem;
+    color: var(--fg);
+  }
+
+  .proj__bullets li {
+    position: relative;
+    padding-left: 1.25rem;
+  }
+
+  .proj__bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0.15rem;
+    top: 0.72em;
+    width: 0.45rem;
+    height: 1px;
+    background: var(--accent);
+  }
+
+  .proj__foot {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem 1.5rem;
+    margin-top: 0.25rem;
+  }
+
+  .proj__outputs {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.25rem 0.75rem;
+    color: var(--muted);
+    font-size: 0.875rem;
+  }
+
+  .proj__outputs .mono {
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--faint);
+  }
+
+  .proj__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 40px;
+    font-weight: 500;
+    font-size: 0.9375rem;
+    text-decoration: none;
+  }
+
+  .proj__link :global(svg) {
+    width: 1.05em;
+    height: 1.05em;
+  }
+
+  .proj__link :global(svg:last-child) {
+    width: 0.9em;
+    height: 0.9em;
+    transition: transform 0.15s;
+  }
+
+  .proj__link:hover :global(svg:last-child) {
+    transform: translate(2px, -2px);
+  }
+
+  .pub {
+    display: grid;
+    gap: 0.6rem;
+    margin-top: 0.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+  }
+
+  .pub__cite {
+    max-width: 68ch;
+  }
+
+  .pub__cite cite {
+    font-style: italic;
+  }
+
+  .pub__status {
+    color: var(--muted);
+  }
+
+  /* ---------- Talks ---------- */
+  .talks {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border-top: 1px solid var(--line);
+    min-width: 0;
+  }
+
+  .talk {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.4rem;
+    padding-block: 1.35rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  @media (min-width: 760px) {
+    .talk {
+      grid-template-columns: 9.5rem minmax(0, 1fr) auto;
+      gap: 1.75rem;
+      align-items: baseline;
+    }
+  }
+
+  .talk__date {
+    color: var(--muted);
+  }
+
+  .talk__body {
+    display: grid;
+    gap: 0.3rem;
+    min-width: 0;
+  }
+
+  .talk__venue {
+    font-weight: 600;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.15rem 0.75rem;
+    align-items: baseline;
+  }
+
+  .talk__place {
+    font-weight: 400;
+    font-size: 0.875rem;
+    color: var(--muted);
+  }
+
+  .talk__title {
+    font-size: 0.9375rem;
+    font-style: italic;
+    color: var(--muted);
+    max-width: 70ch;
+  }
+
+  .talk__authors {
+    font-size: var(--step--1);
+    color: var(--faint);
+  }
+
+  .talk__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  @media (min-width: 760px) {
+    .talk__tags {
+      justify-content: flex-end;
+    }
+  }
+
+  .tag {
+    font-family: var(--font-mono);
+    font-size: var(--step--2);
+    letter-spacing: 0.04em;
+    padding: 0.25em 0.6em;
+    border-radius: 3px;
+    border: 1px solid var(--line-strong);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .tag--oral {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  .tag--note {
+    border-color: transparent;
+    background: var(--accent-soft);
+    color: var(--fg);
+  }
+
+  /* ---------- Toolkit ---------- */
+  .skills {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem 2.5rem;
+    min-width: 0;
+  }
+
+  @media (min-width: 680px) {
+    .skills {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .skills__group {
+    display: grid;
+    gap: 0.8rem;
+    align-content: start;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .skills .chip {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--fg);
+    padding: 0.35em 0.75em;
+  }
+
+  /* ---------- Education ---------- */
+  .edu {
+    display: grid;
+    gap: 2.25rem;
+    min-width: 0;
+  }
+
+  .edu__top {
+    display: grid;
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 900px) {
+    .edu__top {
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 2rem;
+    }
+  }
+
+  .edu__degree {
+    font-size: var(--step-1);
+    font-stretch: 105%;
+    font-weight: 600;
+    max-width: 34ch;
+  }
+
+  .edu__meta {
+    color: var(--muted);
+    margin-top: 0.35rem;
+  }
+
+  .edu__honours {
+    list-style: none;
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  .edu__honours li {
+    font-size: 0.875rem;
+    padding: 0.5rem 0.85rem;
+    border-radius: var(--radius);
+    background: var(--accent-soft);
+  }
+
+  .edu__courses {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem;
+  }
+
+  @media (min-width: 680px) {
+    .edu__courses {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .edu__courses > div {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .edu__list {
+    list-style: none;
+    display: grid;
+    gap: 0.35rem;
+    font-size: 0.9375rem;
+  }
+
+  .edu__now .subhead {
+    color: var(--accent);
+  }
+
+  .edu__now li::after {
+    content: ' · in progress';
+    color: var(--faint);
+    font-size: var(--step--1);
+  }
+
+  /* ---------- Service ---------- */
+  .service {
+    list-style: none;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2rem 2.5rem;
+    min-width: 0;
+  }
+
+  @media (min-width: 680px) {
+    .service {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .service__item {
+    display: grid;
+    gap: 0.35rem;
+    align-content: start;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+  }
+
+  .service__dates {
+    color: var(--muted);
+  }
+
+  .service__item h3 {
+    font-size: 1.0625rem;
+    font-stretch: 108%;
+    margin-top: 0.2rem;
+  }
+
+  .service__org {
+    color: var(--muted);
+    font-size: 0.9375rem;
+  }
+
+  .service__body {
+    font-size: 0.9375rem;
+    margin-top: 0.3rem;
+    max-width: 52ch;
+  }
+
+  /* ---------- Contact ---------- */
+  .contact {
+    padding-bottom: var(--section-space);
+  }
+
+  .contact__panel {
+    display: grid;
+    gap: 2.5rem;
+    padding: clamp(1.75rem, 1rem + 4vw, 3.75rem);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background:
+      radial-gradient(120% 140% at 100% 0%, var(--accent-soft), transparent 55%),
+      var(--surface);
+  }
+
+  @media (min-width: 960px) {
+    .contact__panel {
+      grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+      align-items: end;
+      gap: 4rem;
+    }
+  }
+
+  .contact__text {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .contact__h {
+    font-size: var(--step-5);
+    font-weight: 700;
+    font-stretch: 122%;
+    letter-spacing: -0.035em;
+    line-height: 0.95;
+  }
+
+  .contact__body {
+    color: var(--muted);
+    max-width: 52ch;
+  }
+
+  .contact__actions {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
+  }
+
+  .email {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.75rem;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .email__addr {
+    font-family: var(--font-display);
+    font-size: clamp(1.15rem, 0.9rem + 1.2vw, 1.6rem);
+    font-weight: 500;
+    font-stretch: 105%;
+    letter-spacing: -0.01em;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+
+  .email__copy {
+    min-height: 38px;
+    padding-inline: 0.85rem;
+    font-size: 0.875rem;
+  }
+
+  .email__copy.is-copied {
+    border-color: var(--ok);
+    color: var(--ok);
+  }
+
+  .email__icon {
+    display: inline-flex;
+  }
+
+  .contact__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  /* ---------- Footer ---------- */
+  .footer {
+    border-top: 1px solid var(--line);
+    /* extra room at the bottom so the background legend never covers the footer text */
+    padding-block: 2rem calc(4.5rem + env(safe-area-inset-bottom, 0px));
+    color: var(--muted);
+    font-size: var(--step--1);
+  }
+
+  .footer__inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem 2rem;
+  }
+</style>

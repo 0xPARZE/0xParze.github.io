@@ -1,0 +1,769 @@
+---
+// Animated page background, computed on the GPU with WebGL2 (no libraries).
+// Tens of thousands of particles stream through the dynamics of two systems:
+//   • the Hastings–Powell food chain: the prey–predator plane, with the top predator z
+//     drifting along its own chaotic orbit, so the flow keeps reshaping itself;
+//   • the Ikeda map: the round-trip displacement F(z) − z of light in the ring cavity,
+//     with the cavity phase φ slowly sweeping.
+// Particle positions live in GPU buffers and are advanced by a vertex shader with transform
+// feedback (midpoint/RK2 steps). Trails are drawn into ping-pong framebuffers that fade each frame.
+---
+
+<div class="flow" id="flow" aria-hidden="true">
+  <canvas id="flow-canvas"></canvas>
+</div>
+
+<div class="legend" id="bg-legend">
+  <button class="legend__pause" id="bg-pause" type="button" aria-pressed="false" aria-label="Pause background animation" title="Pause background animation">
+    <svg class="i-pause" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6.5" y="5" width="3.6" height="14" rx="1"></rect><rect x="13.9" y="5" width="3.6" height="14" rx="1"></rect></svg>
+    <svg class="i-play" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2Z"></path></svg>
+  </button>
+  <details class="legend__details" id="bg-details">
+    <summary>
+      <span class="legend__k">Background</span>
+      <span class="legend__name" id="bg-name">Hastings–Powell</span>
+    </summary>
+    <div class="legend__panel">
+      <div class="legend__sys" data-sys="0">
+        <p class="legend__title">Hastings–Powell food chain <span>· ecology</span></p>
+        <p class="legend__eq">
+          <span><i>ẋ</i> = <i>x</i>(1 − <i>x</i>) − <i>f</i><sub>1</sub>(<i>x</i>)<i>y</i></span>
+          <span><i>ẏ</i> = <i>f</i><sub>1</sub>(<i>x</i>)<i>y</i> − <i>f</i><sub>2</sub>(<i>y</i>)<i>z</i> − <i>d</i><sub>1</sub><i>y</i></span>
+        </p>
+        <p class="legend__blurb">
+          Particles follow the flow in the prey (<i>x</i>, across) and predator (<i>y</i>, up) plane.
+          The top predator <i>z</i> drifts along its own chaotic orbit, so the spiral keeps shifting.
+        </p>
+      </div>
+      <div class="legend__sys" data-sys="1" hidden>
+        <p class="legend__title">Ikeda map <span>· optics</span></p>
+        <p class="legend__eq">
+          <span><i>F</i>(<i>z</i>) = <i>A</i> + <i>Bz</i>&#8201;exp&#8202;[<i>i</i>(<i>φ</i> − <i>p</i>/(1 + |<i>z</i>|<sup>2</sup>))]</span>
+        </p>
+        <p class="legend__blurb">
+          Particles follow the round-trip displacement <i>F</i>(<i>z</i>) − <i>z</i> of light in the ring cavity, across
+          the complex plane. The cavity phase <i>φ</i> sweeps slowly, moving the cavity’s fixed points.
+        </p>
+      </div>
+      <dl class="legend__live">
+        <div><dt id="bg-param-k"><i>z</i></dt><dd id="bg-param">…</dd></div>
+        <div><dt>Particles</dt><dd id="bg-n">…</dd></div>
+        <div><dt>Frame rate</dt><dd id="bg-fps">…</dd></div>
+      </dl>
+      <p class="legend__note">
+        WebGL2 and GLSL, no libraries. Particle positions never leave the GPU: a vertex shader advances them with midpoint
+        (RK2) steps using transform feedback, and trails fade in ping-pong framebuffers. It runs at up to 60 fps, uses fewer
+        particles on slower devices, and stops while the tab is hidden.
+      </p>
+    </div>
+  </details>
+</div>
+
+<script is:inline>
+  (function () {
+    var root = document.documentElement;
+    var wrap = document.getElementById('flow');
+    var cv = document.getElementById('flow-canvas');
+    var $ = function (id) { return document.getElementById(id); };
+    var ui = { pause: $('bg-pause'), name: $('bg-name'), details: $('bg-details'), param: $('bg-param'), paramK: $('bg-param-k'), n: $('bg-n'), fps: $('bg-fps') };
+    var infos = Array.prototype.slice.call(document.querySelectorAll('.legend__sys'));
+    var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    var paused = false;
+    try { paused = localStorage.getItem('bg-paused') === '1'; } catch (e) {}
+    function off() { root.classList.add('bg-off'); }
+
+    // ---------------- shaders ----------------
+    var UPDATE_VS = [
+      '#version 300 es',
+      'precision highp float;',
+      'layout(location=0) in vec4 a_pos;  // xy: position (0..1 screen units), zw: previous position',
+      'layout(location=1) in vec2 a_meta; // x: age in seconds',
+      'out vec4 v_pos;',
+      'out vec2 v_meta;',
+      'uniform float u_dt, u_mix, u_z, u_phi, u_speed, u_frame, u_scatter;',
+      'uniform vec2 u_res;',
+      'uint hash(uint x) { x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }',
+      'float rnd(uint s) { return float(hash(s)) * (1.0 / 4294967295.0); }',
+      // Hastings–Powell prey–predator plane, x in [0, 1.05], y in [0, 0.5]
+      'vec2 hastingsPowell(vec2 uv) {',
+      '  float x = uv.x * 1.05, y = uv.y * 0.5;',
+      '  float f1 = 5.0 * x / (1.0 + 3.0 * x), f2 = 0.1 * y / (1.0 + 2.0 * y);',
+      '  return vec2(x * (1.0 - x) - f1 * y, f1 * y - f2 * u_z - 0.4 * y) / vec2(1.05, 0.5);',
+      '}',
+      // Ikeda round-trip displacement, Re z in [-2.2, 3.2], Im z in [-3.0, 2.4]
+      'vec2 ikeda(vec2 uv) {',
+      '  float x = -2.2 + uv.x * 5.4, y = -3.0 + uv.y * 5.4;',
+      '  float t = u_phi - 6.0 / (1.0 + x * x + y * y), c = cos(t), s = sin(t);',
+      '  return (vec2(1.0 + 0.9 * (x * c - y * s), 0.9 * (x * s + y * c)) - vec2(x, y)) / 5.4;',
+      '}',
+      // unit direction on screen, slowed near equilibria so their structure shows
+      'vec2 steer(vec2 v) {',
+      '  vec2 p = v * u_res; float m = length(v);',
+      '  return p / (length(p) + 1e-9) * (0.2 + 0.8 * m / (m + 0.035));',
+      '}',
+      'vec2 field(vec2 uv) { return mix(steer(hastingsPowell(uv)), steer(ikeda(uv)), u_mix); }',
+      'void main() {',
+      '  uint id = uint(gl_VertexID);',
+      '  vec2 uv = a_pos.xy;',
+      '  float life = 2.5 + 5.0 * rnd(id * 2654435761u + 17u);',
+      '  float h = u_speed * u_dt;',
+      '  vec2 k1 = field(uv);',
+      '  vec2 k2 = field(uv + 0.5 * h * k1 / u_res);',
+      '  vec2 nuv = uv + h * k2 / u_res;',
+      '  float age = a_meta.x + u_dt;',
+      '  bool outside = nuv.x < 0.0 || nuv.y < 0.0 || nuv.x > 1.0 || nuv.y > 1.0;',
+      '  if (age > life || outside || u_scatter > 0.5) {',
+      '    uint s = hash(id * 747796405u + uint(u_frame) * 2891336453u);',
+      '    nuv = vec2(rnd(s), rnd(s ^ 0x9e3779b9u));',
+      '    v_pos = vec4(nuv, nuv);',
+      '    v_meta = vec2(u_scatter > 0.5 ? rnd(s + 7u) * life : 0.0, 0.0);',
+      '  } else {',
+      '    v_pos = vec4(nuv, uv);',
+      '    v_meta = vec2(age, 0.0);',
+      '  }',
+      '}',
+    ].join('\n');
+    var DISCARD_FS = '#version 300 es\nprecision mediump float;\nout vec4 o;\nvoid main() { o = vec4(0.0); }';
+
+    // each particle is drawn as a segment from its previous to its current position
+    var LINE_VS = [
+      '#version 300 es',
+      'layout(location=0) in vec4 a_pos;',
+      'void main() {',
+      '  vec2 p = gl_VertexID == 0 ? a_pos.zw : a_pos.xy;',
+      '  gl_Position = vec4(p * 2.0 - 1.0, 0.0, 1.0);',
+      '}',
+    ].join('\n');
+    var LINE_FS = '#version 300 es\nprecision mediump float;\nuniform float u_ink;\nout vec4 o;\nvoid main() { o = vec4(u_ink, 0.0, 0.0, 1.0); }';
+
+    var QUAD_VS = [
+      '#version 300 es',
+      'out vec2 v_uv;',
+      'void main() {',
+      '  vec2 p = vec2(gl_VertexID == 1 ? 3.0 : -1.0, gl_VertexID == 2 ? 3.0 : -1.0);',
+      '  v_uv = p * 0.5 + 0.5;',
+      '  gl_Position = vec4(p, 0.0, 1.0);',
+      '}',
+    ].join('\n');
+    // floor() makes every texel strictly decrease, so trails fade fully instead of leaving ghosts
+    var FADE_FS = [
+      '#version 300 es',
+      'precision mediump float;',
+      'in vec2 v_uv; uniform sampler2D u_tex; uniform float u_fade; out vec4 o;',
+      'void main() { o = vec4(floor(texture(u_tex, v_uv).r * 255.0 * u_fade) / 255.0, 0.0, 0.0, 1.0); }',
+    ].join('\n');
+    var SHOW_FS = [
+      '#version 300 es',
+      'precision mediump float;',
+      'in vec2 v_uv; uniform sampler2D u_tex; uniform vec3 u_c1, u_c2; out vec4 o;',
+      'void main() {',
+      '  float a = pow(clamp(texture(u_tex, v_uv).r * 1.25, 0.0, 1.0), 0.8); // lift faint trails',
+      '  o = vec4(mix(u_c1, u_c2, a) * a, a);',
+      '}',
+    ].join('\n');
+
+    // ---------------- WebGL setup ----------------
+    var gl, progUpdate, progLine, progFade, progShow, U = {};
+    var buffers = [], vaoUpdate = [], vaoLine = [], tf, src = 0;
+    var tex = [], fbo = [], cur = 0, W = 0, H = 0, N = 0, quality = 1;
+
+    // Shaders compile in the background (KHR_parallel_shader_compile) so the main thread never waits on them.
+    function shader(type, text) {
+      var s = gl.createShader(type);
+      gl.shaderSource(s, text);
+      gl.compileShader(s);
+      return s;
+    }
+    function program(vs, fs, varyings) {
+      var p = gl.createProgram();
+      gl.attachShader(p, shader(gl.VERTEX_SHADER, vs));
+      gl.attachShader(p, shader(gl.FRAGMENT_SHADER, fs));
+      if (varyings) gl.transformFeedbackVaryings(p, varyings, gl.INTERLEAVED_ATTRIBS);
+      gl.linkProgram(p);
+      return p;
+    }
+    function linked(p) {
+      if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p));
+      return p;
+    }
+    function uniforms(p, names) {
+      var o = {};
+      names.forEach(function (n) { o[n] = gl.getUniformLocation(p, n); });
+      return o;
+    }
+
+    function particleCount() {
+      var big = window.innerWidth >= 1024 && (navigator.hardwareConcurrency || 4) >= 4;
+      return (big ? 16384 : 8192) * quality;
+    }
+
+    function makeParticles() {
+      N = Math.max(2048, Math.round(particleCount()));
+      var data = new Float32Array(N * 6);
+      for (var i = 0; i < N; i++) {
+        var x = Math.random(), y = Math.random();
+        data.set([x, y, x, y, Math.random() * 6, 0], i * 6);
+      }
+      for (var k = 0; k < 2; k++) {
+        if (buffers[k]) gl.deleteBuffer(buffers[k]);
+        buffers[k] = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffers[k]);
+        gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_COPY);
+
+        vaoUpdate[k] = vaoUpdate[k] || gl.createVertexArray();
+        gl.bindVertexArray(vaoUpdate[k]);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 24, 0);
+        gl.enableVertexAttribArray(1);
+        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 24, 16);
+
+        vaoLine[k] = vaoLine[k] || gl.createVertexArray();
+        gl.bindVertexArray(vaoLine[k]);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 4, gl.FLOAT, false, 24, 0);
+        gl.vertexAttribDivisor(0, 1);
+      }
+      gl.bindVertexArray(null);
+      gl.bindBuffer(gl.ARRAY_BUFFER, null);
+      src = 0;
+      var label = N.toLocaleString('en-US');
+      if (ui.n) ui.n.textContent = label;
+      Array.prototype.forEach.call(document.querySelectorAll('[data-bg-count]'), function (el) { el.textContent = label; });
+    }
+
+    function makeTargets() {
+      var dpr = Math.min(window.devicePixelRatio || 1, 1.5) * (quality < 1 ? 0.75 : 1);
+      var cssW = window.innerWidth, cssH = window.innerHeight;
+      var scale = Math.min(dpr, Math.sqrt(4.2e6 / (cssW * cssH)));
+      W = Math.max(1, Math.round(cssW * scale));
+      H = Math.max(1, Math.round(cssH * scale));
+      cv.width = W; cv.height = H;
+      for (var k = 0; k < 2; k++) {
+        if (tex[k]) gl.deleteTexture(tex[k]);
+        if (fbo[k]) gl.deleteFramebuffer(fbo[k]);
+        tex[k] = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, tex[k]);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.R8, W, H, 0, gl.RED, gl.UNSIGNED_BYTE, null);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        fbo[k] = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[k]);
+        gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex[k], 0);
+        gl.clearColor(0, 0, 0, 0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+      }
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.bindTexture(gl.TEXTURE_2D, null);
+    }
+
+    // step 1: start compiling (returns at once); step 2 runs when the compiler is done
+    function initStart(done) {
+      gl = cv.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false, powerPreference: 'low-power' });
+      if (!gl) return done(false);
+      var ext = gl.getExtension('KHR_parallel_shader_compile');
+      var progs = [
+        (progUpdate = program(UPDATE_VS, DISCARD_FS, ['v_pos', 'v_meta'])),
+        (progLine = program(LINE_VS, LINE_FS)),
+        (progFade = program(QUAD_VS, FADE_FS)),
+        (progShow = program(QUAD_VS, SHOW_FS)),
+      ];
+      // finish on a later frame, so context creation and set-up are split into small tasks
+      requestAnimationFrame(function wait() {
+        if (ext && !progs.every(function (p) { return gl.getProgramParameter(p, ext.COMPLETION_STATUS_KHR); })) {
+          return requestAnimationFrame(wait);
+        }
+        try { progs.forEach(linked); } catch (e) { return done(false); }
+        zs = zs || computeOrbit();
+        done(initFinish());
+      });
+    }
+    function initFinish() {
+      U.update = uniforms(progUpdate, ['u_dt', 'u_mix', 'u_z', 'u_phi', 'u_speed', 'u_frame', 'u_scatter', 'u_res']);
+      U.line = uniforms(progLine, ['u_ink']);
+      U.fade = uniforms(progFade, ['u_tex', 'u_fade']);
+      U.show = uniforms(progShow, ['u_tex', 'u_c1', 'u_c2']);
+      tf = gl.createTransformFeedback();
+      gl.disable(gl.DEPTH_TEST);
+      makeParticles();
+      makeTargets();
+      readTheme();
+      scatter = true;
+      return true;
+    }
+
+    // ---------------- the parameters that drift ----------------
+    // The top predator's level z(t) is taken from a real Hastings–Powell orbit, computed once here.
+    var zs = null;
+    function computeOrbit() {
+      var x = 0.836132, y = 0.144982, z = 7.466506, h = 0.25, out = new Float32Array(16000);
+      function f(x, y, z) {
+        var f1 = 5 * x / (1 + 3 * x), f2 = 0.1 * y / (1 + 2 * y);
+        return [x * (1 - x) - f1 * y, f1 * y - f2 * z - 0.4 * y, f2 * z - 0.01 * z];
+      }
+      for (var i = 0; i < out.length; i++) {
+        var a = f(x, y, z), b = f(x + h / 2 * a[0], y + h / 2 * a[1], z + h / 2 * a[2]);
+        var c = f(x + h / 2 * b[0], y + h / 2 * b[1], z + h / 2 * b[2]), d = f(x + h * c[0], y + h * c[1], z + h * c[2]);
+        x += h / 6 * (a[0] + 2 * b[0] + 2 * c[0] + d[0]);
+        y += h / 6 * (a[1] + 2 * b[1] + 2 * c[1] + d[1]);
+        z += h / 6 * (a[2] + 2 * b[2] + 2 * c[2] + d[2]);
+        out[i] = z;
+      }
+      return out; // 4000 time units of z(t)
+    }
+    function zAt(t) {
+      var s = (t * 6) / 0.25, n = zs.length - 1;       // 6 model time units per second
+      s = s % (2 * n); if (s > n) s = 2 * n - s;        // run the orbit back and forth so it never jumps
+      var i = Math.floor(s), u = s - i;
+      return zs[i] + (zs[Math.min(n, i + 1)] - zs[i]) * u;
+    }
+    function phiAt(t) { return 0.4 + 0.85 * Math.sin((2 * Math.PI * t) / 70); }
+    // 40 s of Hastings–Powell, a 7 s morph, 40 s of Ikeda, a 7 s morph back
+    var CYCLE = 94;
+    function mixAt(t) {
+      var c = t % CYCLE, s = function (u) { u = Math.max(0, Math.min(1, u)); return u * u * (3 - 2 * u); };
+      if (c < 40) return 0;
+      if (c < 47) return s((c - 40) / 7);
+      if (c < 87) return 1;
+      return 1 - s((c - 87) / 7);
+    }
+
+    // ---------------- colours + opacity ----------------
+    var c1 = [0.4, 0.6, 0.8], c2 = [0.8, 0.9, 1], level = { hero: 0.8, section: 0.32 };
+    function hexToRgb(h) { h = h.trim().replace('#', ''); return [parseInt(h.slice(0, 2), 16) / 255, parseInt(h.slice(2, 4), 16) / 255, parseInt(h.slice(4, 6), 16) / 255]; }
+    function readTheme() {
+      var cs = getComputedStyle(root);
+      var stops = cs.getPropertyValue('--cmap').trim().split(/\s+/).filter(Boolean);
+      if (stops.length >= 2) { c1 = hexToRgb(stops[Math.floor(stops.length * 0.6)]); c2 = hexToRgb(stops[stops.length - 1]); }
+      level.hero = parseFloat(cs.getPropertyValue('--bg-hero')) || 0.8;
+      level.section = parseFloat(cs.getPropertyValue('--bg-section')) || 0.32;
+      applyOpacity();
+      if (gl && ready && !running) show();
+    }
+    var heroEl = null;
+    function applyOpacity() {
+      if (!heroEl) heroEl = document.getElementById('top');
+      var h = heroEl ? heroEl.offsetHeight : 700;
+      var t = Math.max(0, Math.min(1, 1 - window.scrollY / (h * 0.8)));
+      var heroLevel = window.innerWidth >= 1024 ? level.hero : Math.min(level.hero, level.section * 1.25);
+      wrap.style.opacity = ready ? (level.section + (heroLevel - level.section) * t).toFixed(3) : '0';
+    }
+
+    // ---------------- one frame ----------------
+    // look of the trails: fade per 60 Hz frame, ink per segment, particle speed in CSS px per second
+    var FADE = 0.986, INK = 0.45, SPEED = 46;
+    var simT = 0, frame = 0, scatter = false, ready = false;
+    function step(dt) {
+      var m = mixAt(simT), z = zAt(simT), phi = phiAt(simT);
+
+      // 1. advance every particle on the GPU (no rasterising)
+      gl.useProgram(progUpdate);
+      gl.uniform1f(U.update.u_dt, dt);
+      gl.uniform1f(U.update.u_mix, m);
+      gl.uniform1f(U.update.u_z, z);
+      gl.uniform1f(U.update.u_phi, phi);
+      gl.uniform1f(U.update.u_speed, SPEED * (W / window.innerWidth));
+      gl.uniform1f(U.update.u_frame, frame);
+      gl.uniform1f(U.update.u_scatter, scatter ? 1 : 0);
+      gl.uniform2f(U.update.u_res, W, H);
+      gl.bindVertexArray(vaoUpdate[src]);
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers[1 - src]);
+      gl.enable(gl.RASTERIZER_DISCARD);
+      gl.beginTransformFeedback(gl.POINTS);
+      gl.drawArrays(gl.POINTS, 0, N);
+      gl.endTransformFeedback();
+      gl.disable(gl.RASTERIZER_DISCARD);
+      gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, null);
+      gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, null);
+      src = 1 - src;
+      scatter = false;
+
+      // 2. fade the previous trails into the other framebuffer
+      gl.viewport(0, 0, W, H);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo[1 - cur]);
+      gl.useProgram(progFade);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex[cur]);
+      gl.uniform1i(U.fade.u_tex, 0);
+      gl.uniform1f(U.fade.u_fade, Math.pow(FADE, dt * 60));
+      gl.bindVertexArray(null);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+      // 3. draw this frame's segments on top (additive)
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE);
+      gl.useProgram(progLine);
+      gl.uniform1f(U.line.u_ink, INK);
+      gl.bindVertexArray(vaoLine[src]);
+      gl.drawArraysInstanced(gl.LINES, 0, 2, N);
+      gl.disable(gl.BLEND);
+      gl.bindVertexArray(null);
+      cur = 1 - cur;
+
+      show();
+      simT += dt;
+      frame++;
+      return { m: m, z: z, phi: phi };
+    }
+    // 4. composite the trails onto the page in the theme's colours
+    function show() {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.viewport(0, 0, W, H);
+      gl.clearColor(0, 0, 0, 0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(progShow);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex[cur]);
+      gl.uniform1i(U.show.u_tex, 0);
+      gl.uniform3fv(U.show.u_c1, c1);
+      gl.uniform3fv(U.show.u_c2, c2);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+
+    // ---------------- loop ----------------
+    var raf = 0, running = false, last = 0, fpsFrames = 0, fpsT0 = 0, deltas = [], degraded = false, shownSys = -1;
+    function loop(now) {
+      raf = requestAnimationFrame(loop);
+      var d = now - last;
+      if (d < 14) return; // cap at about 60 fps on high-refresh screens
+      last = now;
+      var dt = Math.min(d / 1000, 1 / 30);
+      var st = step(dt);
+
+      // adaptive quality: if the first couple of seconds run slowly, halve the work once
+      if (!degraded && frame > 20 && deltas.length < 90) {
+        deltas.push(d);
+        if (deltas.length === 90) {
+          var sorted = deltas.slice().sort(function (a, b) { return a - b; });
+          if (sorted[45] > 24) { degraded = true; quality = 0.5; makeParticles(); makeTargets(); scatter = true; }
+        }
+      }
+
+      fpsFrames++;
+      if (now - fpsT0 > 1000) {
+        if (ui.fps) ui.fps.textContent = Math.round((fpsFrames * 1000) / (now - fpsT0)) + ' fps';
+        fpsFrames = 0; fpsT0 = now;
+      }
+      if (frame % 10 === 0) legend(st);
+    }
+    function legend(st) {
+      var sys = st.m < 0.5 ? 0 : 1;
+      if (sys !== shownSys) {
+        shownSys = sys;
+        infos.forEach(function (el, k) { el.hidden = k !== sys; });
+        ui.name.textContent = sys === 0 ? 'Hastings–Powell' : 'Ikeda';
+        ui.paramK.innerHTML = sys === 0 ? '<i>z</i>' : '<i>φ</i>';
+      }
+      ui.param.textContent = sys === 0 ? st.z.toFixed(2) : st.phi.toFixed(2);
+    }
+    function start() {
+      if (running || !ready || paused || reduce || document.hidden) return;
+      running = true;
+      last = performance.now();
+      fpsT0 = last; fpsFrames = 0;
+      raf = requestAnimationFrame(loop);
+    }
+    function stop() { running = false; if (raf) cancelAnimationFrame(raf); raf = 0; }
+
+    // a still frame for reduced motion: run a few seconds of simulation at once, then stop
+    function still() {
+      var st;
+      for (var i = 0; i < 150; i++) st = step(1 / 60);
+      legend(st);
+      if (ui.fps) ui.fps.textContent = 'paused';
+    }
+
+    // ---------------- controls + events ----------------
+    function setPausedUI() {
+      ui.pause.setAttribute('aria-pressed', paused ? 'true' : 'false');
+      ui.pause.setAttribute('aria-label', paused ? 'Play background animation' : 'Pause background animation');
+      ui.pause.title = ui.pause.getAttribute('aria-label');
+    }
+    ui.pause.addEventListener('click', function () {
+      paused = !paused;
+      try { localStorage.setItem('bg-paused', paused ? '1' : '0'); } catch (e) {}
+      setPausedUI();
+      if (paused) { stop(); if (ui.fps) ui.fps.textContent = 'paused'; } else start();
+    });
+    if (reduce) ui.pause.hidden = true;
+    setPausedUI();
+
+    window.addEventListener('scroll', applyOpacity, { passive: true });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) stop(); else start(); });
+    var rt = 0, lastW = window.innerWidth, lastH = window.innerHeight;
+    window.addEventListener('resize', function () {
+      clearTimeout(rt);
+      rt = setTimeout(function () {
+        if (!gl || !ready) return;
+        if (window.innerWidth === lastW && Math.abs(window.innerHeight - lastH) < 120) return; // mobile address bar
+        lastW = window.innerWidth; lastH = window.innerHeight;
+        makeTargets(); scatter = true;
+        if (!running) { reduce || paused ? still() : show(); }
+        applyOpacity();
+      }, 200);
+    });
+    new MutationObserver(readTheme).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    if (mq.addEventListener) mq.addEventListener('change', readTheme);
+    cv.addEventListener('webglcontextlost', function (e) { e.preventDefault(); stop(); ready = false; applyOpacity(); });
+    cv.addEventListener('webglcontextrestored', function () { boot(); });
+
+    // Start once the page has loaded and the browser is idle, so the background never delays the content.
+    function boot() { initStart(booted); }
+    function booted(ok) {
+      if (!ok) { off(); return; }
+      ready = true;
+      applyOpacity();
+      if (reduce || paused) still(); else start();
+    }
+    // wait for the page to paint, then for an idle moment
+    function later() {
+      requestAnimationFrame(function () {
+        setTimeout(function () {
+          if ('requestIdleCallback' in window) window.requestIdleCallback(boot, { timeout: 1500 });
+          else setTimeout(boot, 200);
+        }, 250);
+      });
+    }
+    if (document.readyState === 'complete') later();
+    else window.addEventListener('load', later);
+  })();
+</script>
+
+<style>
+  .flow {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+  }
+
+  .flow canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* On wide screens the text sits on the left, so the flow fades there. */
+  @media (min-width: 1024px) {
+    .flow {
+      -webkit-mask-image: linear-gradient(90deg, rgb(0 0 0 / 0.6) 0%, rgb(0 0 0 / 0.65) 38%, #000 70%);
+      mask-image: linear-gradient(90deg, rgb(0 0 0 / 0.6) 0%, rgb(0 0 0 / 0.65) 38%, #000 70%);
+    }
+  }
+
+  :global(.bg-off) .legend,
+  :global(.bg-off) .flow {
+    display: none;
+  }
+
+  /* ---------- legend ---------- */
+  .legend {
+    position: fixed;
+    z-index: 40;
+    left: max(16px, env(safe-area-inset-left, 0px));
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    display: flex;
+    align-items: center;
+    gap: 0.1rem;
+    padding: 0.2rem 0.75rem 0.2rem 0.2rem;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: var(--nav-bg);
+    backdrop-filter: saturate(1.4) blur(12px);
+    -webkit-backdrop-filter: saturate(1.4) blur(12px);
+    font-size: 0.75rem;
+    color: var(--muted);
+    max-width: calc(100vw - 32px);
+  }
+
+  .legend__pause {
+    display: inline-grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    flex: none;
+  }
+
+  .legend__pause:hover {
+    color: var(--fg);
+    background: var(--accent-soft);
+  }
+
+  .legend__pause svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .legend__pause .i-play,
+  .legend__pause[aria-pressed='true'] .i-pause {
+    display: none;
+  }
+
+  .legend__pause[aria-pressed='true'] .i-play {
+    display: block;
+  }
+
+  .legend__details {
+    min-width: 0;
+  }
+
+  .legend__details summary {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    cursor: pointer;
+    list-style: none;
+    padding: 0.35rem 0.2rem;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  .legend__details summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .legend__details summary::after {
+    content: '';
+    align-self: center;
+    width: 0.4rem;
+    height: 0.4rem;
+    border-right: 1.5px solid currentColor;
+    border-top: 1.5px solid currentColor;
+    transform: rotate(-45deg) translate(-1px, 1px);
+    opacity: 0.6;
+    flex: none;
+  }
+
+  .legend__details[open] summary::after {
+    transform: rotate(135deg) translate(-1px, 1px);
+  }
+
+  .legend__details summary:hover {
+    color: var(--fg);
+  }
+
+  .legend__k {
+    font-family: var(--font-mono);
+    font-size: 0.625rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--faint);
+  }
+
+  .legend__name {
+    color: var(--fg);
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .legend__panel {
+    position: absolute;
+    left: 0;
+    bottom: calc(100% + 8px);
+    width: min(390px, calc(100vw - 32px));
+    display: grid;
+    gap: 0.75rem;
+    padding: 1.1rem 1.2rem;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+    color: var(--muted);
+    box-shadow: 0 12px 32px -12px rgb(0 0 0 / 0.25);
+    font-size: 0.8125rem;
+    line-height: 1.5;
+  }
+
+  .legend__sys {
+    display: grid;
+    gap: 0.6rem;
+  }
+
+  .legend__sys[hidden] {
+    display: none;
+  }
+
+  .legend__title {
+    font-weight: 600;
+    color: var(--fg);
+    font-size: 0.875rem;
+  }
+
+  .legend__title span {
+    font-weight: 400;
+    color: var(--muted);
+  }
+
+  .legend__eq {
+    display: grid;
+    gap: 0.1rem;
+    font-family: var(--font-math);
+    font-size: 1rem;
+    color: var(--fg);
+    white-space: nowrap;
+    overflow-x: auto;
+  }
+
+  .legend__panel :global(i) {
+    font-family: var(--font-math);
+    font-style: italic;
+    font-size: 1.06em;
+  }
+
+  .legend__eq :global(i) {
+    font-size: 1em;
+  }
+
+  .legend__panel :global(sub),
+  .legend__panel :global(sup) {
+    font-size: 0.68em;
+    line-height: 0;
+    font-style: normal;
+  }
+
+  .legend__live {
+    margin: 0;
+    display: grid;
+    gap: 0.3rem;
+    padding-block: 0.6rem;
+    border-block: 1px solid var(--line);
+    font-size: 0.75rem;
+  }
+
+  .legend__live div {
+    display: grid;
+    grid-template-columns: 5.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+  }
+
+  .legend__live dt {
+    color: var(--faint);
+  }
+
+  .legend__live dd {
+    margin: 0;
+    color: var(--fg);
+    font-family: var(--font-mono);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .legend__note {
+    font-size: 0.75rem;
+  }
+
+  @media (max-width: 520px) {
+    .legend__k {
+      display: none;
+    }
+  }
+</style>

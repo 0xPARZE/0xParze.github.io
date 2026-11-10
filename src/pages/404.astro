@@ -1,0 +1,32 @@
+---
+import Base from '../layouts/Base.astro';
+import { site } from '../data/profile';
+---
+
+<Base title={`Page not found · ${site.name}`}>
+  <main class="wrap nf">
+    <p class="kicker">404</p>
+    <h1>This orbit escaped to infinity.</h1>
+    <p>The page you were looking for doesn’t exist.</p>
+    <a class="btn btn--solid" href="/">Back to the homepage</a>
+  </main>
+</Base>
+
+<style>
+  .nf {
+    min-height: 80vh;
+    display: grid;
+    align-content: center;
+    justify-items: start;
+    gap: 1.25rem;
+  }
+  h1 {
+    font-size: var(--step-5);
+    font-stretch: 120%;
+    letter-spacing: -0.03em;
+    max-width: 16ch;
+  }
+  p:not(.kicker) {
+    color: var(--muted);
+  }
+</style>

@@ -1,0 +1,164 @@
+---
+import { site } from '../data/profile';
+
+const links = [
+  { href: '#research', label: 'Research' },
+  { href: '#talks', label: 'Talks' },
+  { href: '#toolkit', label: 'Toolkit' },
+  { href: '#education', label: 'Education' },
+  { href: '#contact', label: 'Contact' },
+];
+---
+
+<header class="nav">
+  <div class="wrap nav__inner">
+    <a class="nav__name" href="#top" aria-label="Rahul Nivash, back to top">
+      Rahul Nivash
+    </a>
+    <nav aria-label="Sections">
+      <ul class="nav__links">
+        {links.map((l) => (
+          <li>
+            <a href={l.href}>{l.label}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+    <div class="nav__actions">
+      <button class="icon-btn" id="theme-toggle" type="button" aria-label="Switch to dark theme" title="Toggle theme">
+        <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="4.2"></circle>
+          <path d="M12 2.5v2.2M12 19.3v2.2M4.6 4.6l1.6 1.6M17.8 17.8l1.6 1.6M2.5 12h2.2M19.3 12h2.2M4.6 19.4l1.6-1.6M17.8 6.2l1.6-1.6"></path>
+        </svg>
+        <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4a8.2 8.2 0 1 0 10.2 10.2Z"></path>
+        </svg>
+      </button>
+      <a class="btn btn--solid nav__cv" href={site.cv} target="_blank" rel="noopener">CV</a>
+    </div>
+  </div>
+</header>
+
+<script is:inline>
+  (function () {
+    var btn = document.getElementById('theme-toggle');
+    if (!btn) return;
+    var root = document.documentElement;
+    var mq = window.matchMedia('(prefers-color-scheme: dark)');
+    function current() {
+      var t = root.getAttribute('data-theme');
+      return t === 'light' || t === 'dark' ? t : mq.matches ? 'dark' : 'light';
+    }
+    function label() {
+      btn.setAttribute('aria-label', current() === 'dark' ? 'Switch to light theme' : 'Switch to dark theme');
+    }
+    btn.addEventListener('click', function () {
+      var next = current() === 'dark' ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      try {
+        localStorage.setItem('theme', next);
+      } catch (e) {}
+      label();
+    });
+    if (mq.addEventListener) mq.addEventListener('change', label);
+    label();
+  })();
+</script>
+
+<style>
+  .nav {
+    position: sticky;
+    top: env(safe-area-inset-top, 0px);
+    z-index: 50;
+    background: var(--nav-bg);
+    backdrop-filter: saturate(1.4) blur(14px);
+    -webkit-backdrop-filter: saturate(1.4) blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .nav__inner {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 64px;
+  }
+
+  .nav__name {
+    font-family: var(--font-display);
+    font-weight: 650;
+    font-stretch: 118%;
+    font-size: 1rem;
+    letter-spacing: -0.005em;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  nav {
+    margin-left: auto;
+  }
+
+  .nav__links {
+    display: none;
+    list-style: none;
+    gap: 0.25rem;
+  }
+
+  .nav__links a {
+    display: inline-block;
+    padding: 0.5rem 0.7rem;
+    font-size: 0.875rem;
+    color: var(--muted);
+    text-decoration: none;
+    border-radius: var(--radius);
+  }
+
+  .nav__links a:hover {
+    color: var(--fg);
+  }
+
+  .nav__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-left: auto;
+  }
+
+  nav + .nav__actions {
+    margin-left: 0;
+  }
+
+  .nav__cv {
+    min-height: 38px;
+    padding-inline: 1rem;
+    font-size: 0.875rem;
+  }
+
+  #theme-toggle .i-moon {
+    display: block;
+  }
+  #theme-toggle .i-sun {
+    display: none;
+  }
+
+  :global(:root[data-theme='dark']) #theme-toggle .i-moon {
+    display: none;
+  }
+  :global(:root[data-theme='dark']) #theme-toggle .i-sun {
+    display: block;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :global(:root:not([data-theme='light'])) #theme-toggle .i-moon {
+      display: none;
+    }
+    :global(:root:not([data-theme='light'])) #theme-toggle .i-sun {
+      display: block;
+    }
+  }
+
+  @media (min-width: 820px) {
+    .nav__links {
+      display: flex;
+    }
+  }
+</style>
