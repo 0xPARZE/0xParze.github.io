@@ -117,6 +117,7 @@ export const research: Project[] = [
       'Defended the findings in an oral presentation to department faculty.',
     ],
     tags: ['Python', 'SciPy', 'Hastings–Powell', 'Runge–Kutta', 'Markov chains', 'Poincaré maps'],
+    links: [{ label: 'Report (PDF)', href: '/docs/Nivash_MATH4920_Report.pdf' }],
   },
   {
     id: 'ikeda',
@@ -133,7 +134,10 @@ export const research: Project[] = [
       'Backed every number with 40 tests against exact identities, published values and a shared-source OpenMP reference.',
     ],
     tags: ['C++20', 'CUDA', 'OpenMP', 'Nonlinear optics', 'Newton continuation'],
-    links: [{ label: 'Code: ikeda-cuda', href: 'https://github.com/0xParze/ikeda-cuda' }],
+    links: [
+      { label: 'Code: ikeda-cuda', href: 'https://github.com/0xParze/ikeda-cuda' },
+      { label: 'Theory Canada slides (PDF)', href: '/docs/Nivash_Theory-Canada-18_Ikeda-slides.pdf' },
+    ],
     outputs: ['Contributed talk, Theory Canada 18', 'Poster, CUPC 2026'],
   },
 ];
@@ -153,6 +157,8 @@ export type Talk = {
   note?: string;
   title: string;
   coauthor?: boolean;
+  // Slides or poster PDFs: put the file in public/docs/ and link it as '/docs/<file>.pdf'
+  links?: { label: string; href: string }[];
 };
 
 // Newest first.
@@ -204,6 +210,7 @@ export const talks: Talk[] = [
     kind: 'Oral',
     note: 'Contributed talk',
     title: 'High-Performance Computational Modeling of Optical Turbulence and Discrete-Time Chaos in the Ikeda Map',
+    links: [{ label: 'Slides (PDF)', href: '/docs/Nivash_Theory-Canada-18_Ikeda-slides.pdf' }],
   },
 ];
 

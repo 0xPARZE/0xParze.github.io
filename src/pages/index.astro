@@ -151,7 +151,7 @@ const year = new Date().getFullYear();
                   {p.links &&
                     p.links.map((l) => (
                       <a class="proj__link" href={l.href} target="_blank" rel="noopener">
-                        <Icon name="github" />
+                        <Icon name={l.href.endsWith('.pdf') ? 'file' : 'github'} />
                         {l.label}
                         <Icon name="arrow" />
                       </a>
@@ -197,6 +197,17 @@ const year = new Date().getFullYear();
                 </p>
                 <p class="talk__title">{t.title}</p>
                 {t.coauthor && <p class="talk__authors">with C. Heggerud</p>}
+                {t.links && (
+                  <p class="talk__links">
+                    {t.links.map((l) => (
+                      <a class="proj__link" href={l.href} target="_blank" rel="noopener">
+                        <Icon name="file" />
+                        {l.label}
+                        <Icon name="arrow" />
+                      </a>
+                    ))}
+                  </p>
+                )}
               </div>
               <p class="talk__tags">
                 <span class:list={['tag', t.kind === 'Oral' && 'tag--oral']}>{t.kind}</span>
@@ -851,6 +862,12 @@ const year = new Date().getFullYear();
   .talk__authors {
     font-size: var(--step--1);
     color: var(--faint);
+  }
+
+  .talk__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 1.25rem;
   }
 
   .talk__tags {
