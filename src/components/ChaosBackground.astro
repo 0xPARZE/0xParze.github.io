@@ -231,10 +231,14 @@
       Array.prototype.forEach.call(document.querySelectorAll('[data-bg-count]'), function (el) { el.textContent = label; });
     }
 
+    // Trails are always one render pixel wide. Rendering finer than the screen (LINE_SUPERSAMPLE) and letting the
+    // browser scale the canvas down makes them thinner and fainter: 1 = screen pixels, 1.5 = two-thirds as wide.
+    // MAX_PIXELS caps the render size so large or high-DPI screens stay fast.
+    var LINE_SUPERSAMPLE = 1.5, MAX_PIXELS = 6.5e6;
     function makeTargets() {
-      var dpr = Math.min(window.devicePixelRatio || 1, 1.5) * (quality < 1 ? 0.75 : 1);
+      var dpr = Math.min(Math.max(window.devicePixelRatio || 1, 1) * LINE_SUPERSAMPLE, 3) * (quality < 1 ? 0.6 : 1);
       var cssW = window.innerWidth, cssH = window.innerHeight;
-      var scale = Math.min(dpr, Math.sqrt(4.2e6 / (cssW * cssH)));
+      var scale = Math.min(dpr, Math.sqrt(MAX_PIXELS / (cssW * cssH)));
       W = Math.max(1, Math.round(cssW * scale));
       H = Math.max(1, Math.round(cssH * scale));
       cv.width = W; cv.height = H;
