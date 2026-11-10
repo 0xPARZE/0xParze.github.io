@@ -27,8 +27,8 @@
   --orbit-a: #6a3fbf;
   --orbit-b: #0f1724;
   /* Background attractor opacity: in the hero, and behind reading sections */
-  --bg-hero: 1;
-  --bg-section: 0.55;
+  --bg-hero: 0.7;
+  --bg-section: 0.3;
 
   --font-display: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
   --font-body: 'Archivo', 'Helvetica Neue', Arial, sans-serif;
@@ -70,8 +70,8 @@
     --cmap: #2e2c5a #3e478f #3f57a3 #427bb7 #589dc3 #7bbfd0 #b1dee2 #eafdfd;
     --orbit-a: #c4b5ff;
     --orbit-b: #ffffff;
-    --bg-hero: 1;
-    --bg-section: 0.55;
+    --bg-hero: 0.7;
+    --bg-section: 0.3;
     color-scheme: dark;
   }
 }
@@ -94,8 +94,8 @@
   --cmap: #2e2c5a #3e478f #3f57a3 #427bb7 #589dc3 #7bbfd0 #b1dee2 #eafdfd;
   --orbit-a: #c4b5ff;
   --orbit-b: #ffffff;
-  --bg-hero: 1;
-  --bg-section: 0.55;
+  --bg-hero: 0.7;
+  --bg-section: 0.3;
   color-scheme: dark;
 }
 
