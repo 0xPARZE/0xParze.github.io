@@ -31,8 +31,9 @@ const s = signals[Astro.props.name];
 
   path {
     fill: none;
-    stroke: var(--line-strong);
-    stroke-width: 1;
+    /* half accent blue, half the strong line grey: clearly visible, still quieter than text */
+    stroke: color-mix(in srgb, var(--accent) 55%, var(--line-strong));
+    stroke-width: 1.4;
     vector-effect: non-scaling-stroke;
     stroke-linejoin: round;
   }
@@ -42,6 +43,6 @@ const s = signals[Astro.props.name];
     font-family: var(--font-mono);
     font-size: 0.625rem;
     letter-spacing: 0.06em;
-    color: var(--faint);
+    color: var(--muted);
   }
 </style>
