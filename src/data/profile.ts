@@ -3,6 +3,8 @@
 
 export const site = {
   name: 'Rahul Nivash',
+  // How the name is drawn in the hero and nav. Screen readers and search engines still get `name`.
+  displayName: { before: 'R', alpha: 'α', after: 'hul Nivash' },
   title: 'Rahul Nivash · Nonlinear Dynamics, HPC & Scientific ML',
   description:
     'Rahul Nivash is a Computer Science & Physics student at the University of Manitoba who studies chaotic dynamical systems, from laser cavities to food chains, with GPU computing and machine learning.',
@@ -109,7 +111,7 @@ export const research: Project[] = [
     dates: 'Winter 2026',
     supervisor: 'Dr. Christopher Heggerud',
     summary:
-      'Showed that the rate equations of a class-B laser cavity are dynamically equivalent to the Hastings–Powell food chain, a three-species model that exhibits transient chaos.',
+      'Showed that the rate equations of a class-B laser cavity are dynamically equivalent to the Hastings–Powell Food Chain, a three-species model that exhibits transient chaos.',
     bullets: [
       'Integrated both systems with high-order adaptive Runge–Kutta methods (SciPy) to resolve sensitive strange attractors.',
       'Used finite-time Lyapunov exponents to measure how far ahead each system is predictable, and Markov chains to model state transitions.',
@@ -126,7 +128,7 @@ export const research: Project[] = [
     org: 'Department of Physics & Astronomy, University of Manitoba',
     dates: 'Jan – Jun 2026',
     summary:
-      'Extended a computational physics (PHYS 4250) assignment on the Ikeda map into a high-performance study of how light in a ring cavity becomes chaotic, and why that happens long before steady-state theory predicts.',
+      'Extended a computational physics (PHYS 4250) assignment on the Ikeda Map into a high-performance study of how light in a ring cavity becomes chaotic, and why that happens long before steady-state theory predicts.',
     bullets: [
       'Rewrote the complex-valued map as a 2D real system and ported the solver to C++ and CUDA. Parameter sweeps run 11.6× (FP64) to 215× (FP32) faster than 12-thread C++.',
       'Derived the Jacobian analytically for Lyapunov exponents, and used Newton continuation to locate the period-doubling route to chaos, recovering Feigenbaum’s constant to within 0.1%.',
@@ -218,7 +220,7 @@ export const skills = [
   { group: 'Languages', items: ['C/C++', 'CUDA', 'Python', 'Java'] },
   {
     group: 'Dynamical systems',
-    items: ['Hastings–Powell food chain', 'Ikeda map', 'Class-B laser equations'],
+    items: ['Hastings–Powell Food Chain', 'Ikeda Map', 'Class-B laser equations'],
   },
   { group: 'Scientific computing', items: ['JAX', 'NumPy', 'SciPy', 'XGBoost', 'OpenMP'] },
   {

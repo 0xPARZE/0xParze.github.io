@@ -31,7 +31,10 @@ const year = new Date().getFullYear();
       <div class="wrap hero__grid">
         <div class="hero__text">
           <p class="kicker hero__eyebrow">{hero.eyebrow}</p>
-          <h1 class="hero__name">{site.name}</h1>
+          <h1 class="hero__name">
+            <span aria-hidden="true">{site.displayName.before}<span class="alpha">{site.displayName.alpha}</span>{site.displayName.after}</span>
+            <span class="sr-only">{site.name}</span>
+          </h1>
           <p class="hero__lede">{hero.lede}</p>
           <p class="hero__sub">{hero.sub}</p>
           <p class="status">
@@ -58,8 +61,7 @@ const year = new Date().getFullYear();
           <p class="hero__cue">
             <span class="hero__cue-dot" aria-hidden="true"></span>
             <span>
-              The background here is computed live in your browser with WebGL2 and GLSL shaders on your GPU, no libraries:{' '}
-              <span data-bg-count>16,384</span> particles streaming through the Hastings–Powell food chain and the Ikeda map.
+              The background here is computed live in your browser using parallel processing with WebGL2 and GLSL shaders.
             </span>
           </p>
         </div>

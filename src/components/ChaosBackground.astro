@@ -1,9 +1,9 @@
 ---
 // Animated page background, computed on the GPU with WebGL2 (no libraries).
 // Tens of thousands of particles stream through the dynamics of two systems:
-//   • the Hastings–Powell food chain: the prey–predator plane, with the top predator z
+//   • the Hastings–Powell Food Chain: the prey–predator plane, with the top predator z
 //     drifting along its own chaotic orbit, so the flow keeps reshaping itself;
-//   • the Ikeda map: the round-trip displacement F(z) − z of light in the ring cavity,
+//   • the Ikeda Map: the round-trip displacement F(z) − z of light in the ring cavity,
 //     with the cavity phase φ slowly sweeping.
 // Particle positions live in GPU buffers and are advanced by a vertex shader with transform
 // feedback (midpoint/RK2 steps). Trails are drawn into ping-pong framebuffers that fade each frame.
@@ -21,22 +21,36 @@
   <details class="legend__details" id="bg-details">
     <summary>
       <span class="legend__k">Background</span>
-      <span class="legend__name" id="bg-name">Hastings–Powell attractor</span>
+      <span class="legend__name" id="bg-name">Hastings–Powell Attractor</span>
     </summary>
     <div class="legend__panel">
+      <div class="legend__tabs" role="group" aria-label="Choose a system">
+        <button type="button" class="legend__tab" data-show="0" aria-pressed="true">Hastings–Powell</button>
+        <button type="button" class="legend__tab" data-show="1" aria-pressed="false">Ikeda</button>
+      </div>
       <div class="legend__sys" data-sys="0">
-        <p class="legend__title">Hastings–Powell food chain <span>· ecology</span></p>
+        <p class="legend__title">Hastings–Powell Food Chain <span>· Ecology</span></p>
         <p class="legend__eq">
           <span><i>ẋ</i> = <i>x</i>(1 − <i>x</i>) − <i>f</i><sub>1</sub>(<i>x</i>)<i>y</i></span>
           <span><i>ẏ</i> = <i>f</i><sub>1</sub>(<i>x</i>)<i>y</i> − <i>f</i><sub>2</sub>(<i>y</i>)<i>z</i> − <i>d</i><sub>1</sub><i>y</i></span>
+          <span class="legend__eq-sub"><i>f</i><sub>1</sub>(<i>x</i>) = 5<i>x</i>/(1 + <i>b</i><sub>1</sub><i>x</i>), <i>f</i><sub>2</sub>(<i>y</i>) = 0.1<i>y</i>/(1 + 2<i>y</i>)</span>
         </p>
         <p class="legend__blurb">
           Particles follow the flow in the prey (<i>x</i>, across) and predator (<i>y</i>, up) plane.
           The top predator <i>z</i> drifts along its own chaotic orbit, so the spiral keeps shifting.
         </p>
+        <div class="legend__controls">
+          <label class="ctl"><span class="ctl__k"><i>b</i><sub>1</sub> <span>prey saturation</span></span>
+            <input type="range" data-p="b1" min="2" max="4" step="0.01" value="3" /><output>3.00</output></label>
+          <label class="ctl"><span class="ctl__k"><i>d</i><sub>1</sub> <span>prey mortality</span></span>
+            <input type="range" data-p="d1" min="0.25" max="0.55" step="0.005" value="0.4" /><output>0.40</output></label>
+          <label class="ctl"><span class="ctl__k"><i>z</i> <span>top predator</span></span>
+            <input type="range" data-p="z" min="6.5" max="11" step="0.01" value="9" /><output>…</output></label>
+          <label class="ctl__auto"><input type="checkbox" data-auto="z" checked /> Let <i>z</i> drift along its orbit</label>
+        </div>
       </div>
       <div class="legend__sys" data-sys="1" hidden>
-        <p class="legend__title">Ikeda map <span>· optics</span></p>
+        <p class="legend__title">Ikeda Map <span>· Optics</span></p>
         <p class="legend__eq">
           <span><i>F</i>(<i>z</i>) = <i>A</i> + <i>Bz</i>&#8201;exp&#8202;[<i>i</i>(<i>φ</i> − <i>p</i>/(1 + |<i>z</i>|<sup>2</sup>))]</span>
         </p>
@@ -44,16 +58,29 @@
           Particles follow the round-trip displacement <i>F</i>(<i>z</i>) − <i>z</i> of light in the ring cavity, across
           the complex plane. The cavity phase <i>φ</i> sweeps slowly, moving the cavity’s fixed points.
         </p>
+        <div class="legend__controls">
+          <label class="ctl"><span class="ctl__k"><i>A</i> <span>input amplitude</span></span>
+            <input type="range" data-p="A" min="0.5" max="1.5" step="0.01" value="1" /><output>1.00</output></label>
+          <label class="ctl"><span class="ctl__k"><i>B</i> <span>mirror reflectivity</span></span>
+            <input type="range" data-p="B" min="0.3" max="0.95" step="0.005" value="0.9" /><output>0.90</output></label>
+          <label class="ctl"><span class="ctl__k"><i>p</i> <span>nonlinear phase</span></span>
+            <input type="range" data-p="p" min="1" max="10" step="0.05" value="6" /><output>6.00</output></label>
+          <label class="ctl"><span class="ctl__k"><i>φ</i> <span>cavity phase</span></span>
+            <input type="range" data-p="phi" min="-3.14" max="3.14" step="0.01" value="0.4" /><output>…</output></label>
+          <label class="ctl__auto"><input type="checkbox" data-auto="phi" checked /> Let <i>φ</i> sweep slowly</label>
+        </div>
+      </div>
+      <div class="legend__row">
+        <p class="legend__hint">Drag a slider and the flow responds at once.</p>
+        <button type="button" class="legend__reset" id="bg-reset">Reset</button>
       </div>
       <dl class="legend__live">
-        <div><dt id="bg-param-k"><i>z</i></dt><dd id="bg-param">…</dd></div>
         <div><dt>Particles</dt><dd id="bg-n">…</dd></div>
         <div><dt>Frame rate</dt><dd id="bg-fps">…</dd></div>
       </dl>
       <p class="legend__note">
         WebGL2 and GLSL, no libraries. Particle positions never leave the GPU: a vertex shader advances them with midpoint
-        (RK2) steps using transform feedback, and trails fade in ping-pong framebuffers. It runs at up to 60 fps, uses fewer
-        particles on slower devices, and stops while the tab is hidden.
+        (RK2) steps using transform feedback, and trails fade in ping-pong framebuffers.
       </p>
     </div>
   </details>
@@ -65,8 +92,14 @@
     var wrap = document.getElementById('flow');
     var cv = document.getElementById('flow-canvas');
     var $ = function (id) { return document.getElementById(id); };
-    var ui = { pause: $('bg-pause'), name: $('bg-name'), details: $('bg-details'), param: $('bg-param'), paramK: $('bg-param-k'), n: $('bg-n'), fps: $('bg-fps') };
-    var infos = Array.prototype.slice.call(document.querySelectorAll('.legend__sys'));
+    var ui = { pause: $('bg-pause'), name: $('bg-name'), details: $('bg-details'), reset: $('bg-reset'), n: $('bg-n'), fps: $('bg-fps') };
+    var all = function (sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); };
+    var infos = all('.legend__sys');
+    var tabs = all('.legend__tab');
+    var inputs = {};
+    all('.legend__controls input[data-p]').forEach(function (el) { inputs[el.dataset.p] = el; });
+    var autoBoxes = {};
+    all('.legend__controls input[data-auto]').forEach(function (el) { autoBoxes[el.dataset.auto] = el; });
     var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     var paused = false;
     try { paused = localStorage.getItem('bg-paused') === '1'; } catch (e) {}
@@ -82,19 +115,21 @@
       'out vec2 v_meta;',
       'uniform float u_dt, u_mix, u_z, u_phi, u_speed, u_frame, u_scatter;',
       'uniform vec2 u_res;',
+      'uniform vec2 u_hp; // Hastings–Powell b1, d1',
+      'uniform vec3 u_ik; // Ikeda A, B, p',
       'uint hash(uint x) { x ^= x >> 16; x *= 0x7feb352du; x ^= x >> 15; x *= 0x846ca68bu; x ^= x >> 16; return x; }',
       'float rnd(uint s) { return float(hash(s)) * (1.0 / 4294967295.0); }',
       // Hastings–Powell prey–predator plane, x in [0, 1.05], y in [0, 0.5]
       'vec2 hastingsPowell(vec2 uv) {',
       '  float x = uv.x * 1.05, y = uv.y * 0.5;',
-      '  float f1 = 5.0 * x / (1.0 + 3.0 * x), f2 = 0.1 * y / (1.0 + 2.0 * y);',
-      '  return vec2(x * (1.0 - x) - f1 * y, f1 * y - f2 * u_z - 0.4 * y) / vec2(1.05, 0.5);',
+      '  float f1 = 5.0 * x / (1.0 + u_hp.x * x), f2 = 0.1 * y / (1.0 + 2.0 * y);',
+      '  return vec2(x * (1.0 - x) - f1 * y, f1 * y - f2 * u_z - u_hp.y * y) / vec2(1.05, 0.5);',
       '}',
       // Ikeda round-trip displacement, Re z in [-2.2, 3.2], Im z in [-3.0, 2.4]
       'vec2 ikeda(vec2 uv) {',
       '  float x = -2.2 + uv.x * 5.4, y = -3.0 + uv.y * 5.4;',
-      '  float t = u_phi - 6.0 / (1.0 + x * x + y * y), c = cos(t), s = sin(t);',
-      '  return (vec2(1.0 + 0.9 * (x * c - y * s), 0.9 * (x * s + y * c)) - vec2(x, y)) / 5.4;',
+      '  float t = u_phi - u_ik.z / (1.0 + x * x + y * y), c = cos(t), s = sin(t);',
+      '  return (vec2(u_ik.x + u_ik.y * (x * c - y * s), u_ik.y * (x * s + y * c)) - vec2(x, y)) / 5.4;',
       '}',
       // unit direction on screen, slowed near equilibria so their structure shows
       'vec2 steer(vec2 v) {',
@@ -284,7 +319,7 @@
       });
     }
     function initFinish() {
-      U.update = uniforms(progUpdate, ['u_dt', 'u_mix', 'u_z', 'u_phi', 'u_speed', 'u_frame', 'u_scatter', 'u_res']);
+      U.update = uniforms(progUpdate, ['u_dt', 'u_mix', 'u_z', 'u_phi', 'u_speed', 'u_frame', 'u_scatter', 'u_res', 'u_hp', 'u_ik']);
       U.line = uniforms(progLine, ['u_ink']);
       U.fade = uniforms(progFade, ['u_tex', 'u_fade']);
       U.show = uniforms(progShow, ['u_tex', 'u_c1', 'u_c2']);
@@ -351,15 +386,34 @@
       var h = heroEl ? heroEl.offsetHeight : 700;
       var t = Math.max(0, Math.min(1, 1 - window.scrollY / (h * 0.8)));
       var heroLevel = window.innerWidth >= 1024 ? level.hero : Math.min(level.hero, level.section * 1.25);
-      wrap.style.opacity = ready ? (level.section + (heroLevel - level.section) * t).toFixed(3) : '0';
+      var o = level.section + (heroLevel - level.section) * t;
+      if (interactive) o = Math.max(o, level.hero); // full strength while someone is exploring it
+      wrap.style.opacity = ready ? o.toFixed(3) : '0';
     }
 
     // ---------------- one frame ----------------
     // look of the trails: fade per 60 Hz frame, ink per segment, particle speed in CSS px per second
     var FADE = 0.986, INK = 0.45, SPEED = 46;
-    var simT = 0, frame = 0, scatter = false, ready = false;
+    var simT = 0, tourT = 0, frame = 0, scatter = false, ready = false;
+
+    // ---------------- interactive parameters ----------------
+    // While the legend panel is open the tour stops on one system and these values drive the field.
+    var DEFAULTS = { b1: 3, d1: 0.4, z: 9, A: 1, B: 0.9, p: 6, phi: 0.4 };
+    var P = Object.assign({}, DEFAULTS);
+    var auto = { z: true, phi: true };      // z drifts along its orbit, φ sweeps, until a slider is moved
+    var interactive = false, pinned = 0, mixNow = 0;
+
     function step(dt) {
-      var m = mixAt(simT), z = zAt(simT), phi = phiAt(simT);
+      var m;
+      if (interactive) {
+        mixNow += (pinned - mixNow) * Math.min(1, dt * 2.2); // ease towards the chosen system
+        if (Math.abs(pinned - mixNow) < 0.002) mixNow = pinned;
+        m = mixNow;
+      } else {
+        m = mixNow = mixAt(tourT);
+        tourT += dt;
+      }
+      var z = auto.z ? zAt(simT) : P.z, phi = auto.phi ? phiAt(simT) : P.phi;
 
       // 1. advance every particle on the GPU (no rasterising)
       gl.useProgram(progUpdate);
@@ -371,6 +425,8 @@
       gl.uniform1f(U.update.u_frame, frame);
       gl.uniform1f(U.update.u_scatter, scatter ? 1 : 0);
       gl.uniform2f(U.update.u_res, W, H);
+      gl.uniform2f(U.update.u_hp, P.b1, P.d1);
+      gl.uniform3f(U.update.u_ik, P.A, P.B, P.p);
       gl.bindVertexArray(vaoUpdate[src]);
       gl.bindTransformFeedback(gl.TRANSFORM_FEEDBACK, tf);
       gl.bindBufferBase(gl.TRANSFORM_FEEDBACK_BUFFER, 0, buffers[1 - src]);
@@ -453,14 +509,16 @@
       if (frame % 10 === 0) legend(st);
     }
     function legend(st) {
-      var sys = st.m < 0.5 ? 0 : 1;
+      var sys = interactive ? pinned : st.m < 0.5 ? 0 : 1;
       if (sys !== shownSys) {
         shownSys = sys;
         infos.forEach(function (el, k) { el.hidden = k !== sys; });
-        ui.name.textContent = sys === 0 ? 'Hastings–Powell attractor' : 'Ikeda attractor';
-        ui.paramK.innerHTML = sys === 0 ? '<i>z</i>' : '<i>φ</i>';
+        tabs.forEach(function (b) { b.setAttribute('aria-pressed', +b.dataset.show === sys ? 'true' : 'false'); });
+        ui.name.textContent = sys === 0 ? 'Hastings–Powell Attractor' : 'Ikeda Attractor';
       }
-      ui.param.textContent = sys === 0 ? st.z.toFixed(2) : st.phi.toFixed(2);
+      // sliders for drifting parameters follow along until someone grabs them
+      if (auto.z) setInput('z', st.z);
+      if (auto.phi) setInput('phi', st.phi);
     }
     function start() {
       if (running || !ready || paused || reduce || document.hidden) return;
@@ -478,6 +536,66 @@
       legend(st);
       if (ui.fps) ui.fps.textContent = 'paused';
     }
+
+    // ---------------- interactive panel ----------------
+    function setInput(k, v) {
+      var el = inputs[k];
+      if (!el) return;
+      el.value = v;
+      if (el.nextElementSibling) el.nextElementSibling.textContent = (+v).toFixed(2);
+    }
+    // when the animation isn't running (paused, or reduced motion), redraw a still frame after a change
+    var redrawQueued = false;
+    function redraw() {
+      if (running || !ready || redrawQueued) return;
+      redrawQueued = true;
+      requestAnimationFrame(function () {
+        redrawQueued = false;
+        if (running || !ready) return;
+        var st;
+        for (var i = 0; i < 120; i++) st = step(1 / 60);
+        legend(st);
+      });
+    }
+    Object.keys(inputs).forEach(function (k) {
+      inputs[k].addEventListener('input', function () {
+        P[k] = +inputs[k].value;
+        setInput(k, P[k]);
+        if (k in auto && auto[k]) { auto[k] = false; autoBoxes[k].checked = false; }
+        redraw();
+      });
+    });
+    Object.keys(autoBoxes).forEach(function (k) {
+      autoBoxes[k].addEventListener('change', function () {
+        auto[k] = autoBoxes[k].checked;
+        if (!auto[k]) P[k] = +inputs[k].value;
+        redraw();
+      });
+    });
+    tabs.forEach(function (b) {
+      b.addEventListener('click', function () {
+        pinned = +b.dataset.show;
+        legend({ m: mixNow, z: zs ? zAt(simT) : P.z, phi: phiAt(simT) });
+        redraw();
+      });
+    });
+    ui.reset.addEventListener('click', function () {
+      P = Object.assign({}, DEFAULTS);
+      Object.keys(inputs).forEach(function (k) { setInput(k, P[k]); });
+      Object.keys(autoBoxes).forEach(function (k) { auto[k] = true; autoBoxes[k].checked = true; });
+      redraw();
+    });
+    // opening the panel pauses the tour on the system on screen; closing it resumes the tour from there
+    ui.details.addEventListener('toggle', function () {
+      interactive = ui.details.open;
+      if (interactive) {
+        pinned = mixNow < 0.5 ? 0 : 1;
+      } else {
+        tourT = Math.floor(tourT / CYCLE) * CYCLE + (pinned === 0 ? 0 : 47);
+        mixNow = pinned;
+      }
+      applyOpacity();
+    });
 
     // ---------------- controls + events ----------------
     function setPausedUI() {
@@ -763,6 +881,133 @@
 
   .legend__note {
     font-size: 0.75rem;
+  }
+
+  /* ---------- interactive controls ---------- */
+  .legend__panel {
+    max-height: calc(100dvh - 96px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  .legend__tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+    padding: 2px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--bg);
+  }
+
+  .legend__tab {
+    min-height: 32px;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--muted);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .legend__tab:hover {
+    color: var(--fg);
+  }
+
+  .legend__tab[aria-pressed='true'] {
+    background: var(--surface);
+    color: var(--fg);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 0 0 1px var(--line);
+  }
+
+  .legend__eq-sub {
+    font-size: 0.8125rem;
+    color: var(--muted);
+  }
+
+  .legend__controls {
+    display: grid;
+    gap: 0.55rem;
+    padding: 0.75rem;
+    border-radius: 6px;
+    background: var(--accent-soft);
+  }
+
+  .ctl {
+    display: grid;
+    grid-template-columns: 7.6rem minmax(0, 1fr) 2.6rem;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.75rem;
+  }
+
+  .ctl__k {
+    color: var(--fg);
+    white-space: nowrap;
+  }
+
+  .ctl__k span {
+    color: var(--faint);
+    font-size: 0.6875rem;
+  }
+
+  .ctl input[type='range'] {
+    width: 100%;
+    margin: 0;
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+
+  .ctl output {
+    font-family: var(--font-mono);
+    font-size: 0.6875rem;
+    font-variant-numeric: tabular-nums;
+    color: var(--fg);
+    text-align: right;
+  }
+
+  .ctl__auto {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .ctl__auto input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+
+  .legend__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+  }
+
+  .legend__hint {
+    font-size: 0.75rem;
+    color: var(--faint);
+  }
+
+  .legend__reset {
+    flex: none;
+    min-height: 30px;
+    padding: 0 0.8rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--fg);
+    font: inherit;
+    font-size: 0.75rem;
+    cursor: pointer;
+  }
+
+  .legend__reset:hover {
+    background: var(--accent-soft);
   }
 
   @media (max-width: 520px) {

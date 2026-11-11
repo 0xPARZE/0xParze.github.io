@@ -92,7 +92,7 @@ export const signals: Record<string, Signal> = {
   },
   ikedaModulus: {
     d: stemPath(ikedaOrbit(140, 500, (x, y) => Math.hypot(x, y))),
-    label: '|zₙ| · Ikeda map',
+    label: '|zₙ| · Ikeda Map',
     stems: true,
   },
   hpPredator: {
@@ -101,7 +101,7 @@ export const signals: Record<string, Signal> = {
   },
   ikedaRe: {
     d: stemPath(ikedaOrbit(140, 900, (x) => x)),
-    label: 'Re zₙ · Ikeda map',
+    label: 'Re zₙ · Ikeda Map',
     stems: true,
   },
   hpTop: {
@@ -110,7 +110,7 @@ export const signals: Record<string, Signal> = {
   },
   ikedaIm: {
     d: stemPath(ikedaOrbit(140, 1300, (_, y) => y)),
-    label: 'Im zₙ · Ikeda map',
+    label: 'Im zₙ · Ikeda Map',
     stems: true,
   },
 };

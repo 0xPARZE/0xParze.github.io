@@ -51,31 +51,6 @@
   color-scheme: light;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #070b12;
-    --surface: #0d131d;
-    --fg: #e3eaf3;
-    --muted: #94a1b3;
-    --faint: #6d7a8d;
-    --line: #1a2331;
-    --line-strong: #2a3647;
-    --accent: #6cc4e4;
-    --accent-2: #b4a2ff;
-    --accent-soft: rgb(108 196 228 / 0.08);
-    --ok: #4fd1a0;
-    --btn-bg: #e3eaf3;
-    --btn-fg: #070b12;
-    --nav-bg: rgb(7 11 18 / 0.8);
-    --cmap: #2e2c5a #3e478f #3f57a3 #427bb7 #589dc3 #7bbfd0 #b1dee2 #eafdfd;
-    --orbit-a: #c4b5ff;
-    --orbit-b: #ffffff;
-    --bg-hero: 0.7;
-    --bg-section: 0.3;
-    color-scheme: dark;
-  }
-}
-
 :root[data-theme='dark'] {
   --bg: #070b12;
   --surface: #0d131d;
@@ -214,6 +189,16 @@ ul {
   letter-spacing: 0.12em;
   color: var(--accent);
   font-weight: 500;
+}
+
+/* The α in the name. Archivo has no Greek letters, so the α comes from Inter (loaded for this
+   one glyph in Base.astro), widened a little to match Archivo's expanded letters. */
+.alpha {
+  display: inline-block;
+  font-family: 'Inter', var(--font-body);
+  font-weight: inherit;
+  transform: scaleX(1.12);
+  margin-inline: 0.03em;
 }
 
 .sr-only {
