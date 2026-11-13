@@ -1,6 +1,6 @@
-# 0xParze.github.io
+# rahulnivash.github.io
 
-This is the source for my personal website, live at **[0xparze.github.io](https://0xparze.github.io)**.
+This is the source for my personal website, live at **[rahulnivash.github.io](https://rahulnivash.github.io)**.
 I built it with [Astro](https://astro.build) and host it on GitHub Pages.
 
 My research is in nonlinear dynamics, so I wanted the site itself to show some. The background is
